@@ -1,0 +1,137 @@
+import cv2
+import cvzone
+import math
+import time
+import pyttsx3
+from ultralytics import YOLO
+
+# Initialize text-to-speech engine
+engine = pyttsx3.init()
+
+# Set up ESP32-CAM stream
+stream_url = "http://<ESP32_IP_ADDRESS>:81/stream"  # Replace with your ESP32 IP
+cap = cv2.VideoCapture(stream_url)
+
+# Load YOLO model
+model = YOLO("../Yolo-Weights/yolov8l.pt")
+
+classNames = [...]  # Keep your original classNames list
+
+prev_frame_time = 0
+new_frame_time = 0
+detected_objects = set()
+
+while True:
+    new_frame_time = time.time()
+    success, img = cap.read()
+    if not success:
+        print("Failed to capture image from the stream.")
+        break
+
+    results = model(img, stream=True)
+    current_detected = set()
+
+    for r in results:
+        boxes = r.boxes
+        for box in boxes:
+            # Bounding Box
+            x1, y1, x2, y2 = box.xyxy[0]
+            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+            w, h = x2 - x1, y2 - y1
+            cvzone.cornerRect(img, (x1, y1, w, h))
+            # Confidence
+            conf = math.ceil((box.conf[0] * 100)) / 100
+            # Class Name
+            cls = int(box.cls[0])
+            class_name = classNames[cls]
+            current_detected.add(class_name)
+
+            cvzone.putTextRect(img, f'{class_name} {conf}', (max(0, x1), max(35, y1)), scale=1, thickness=1)
+
+
+    for obj in current_detected:
+        if obj not in detected_objects:
+            detected_objects.add(obj)
+            engine.say(f"I see a {obj}.")
+            engine.runAndWait()
+
+    # Update the frame rate
+    fps = 1 / (new_frame_time - prev_frame_time)
+    prev_frame_time = new_frame_time
+    print(fps)
+
+    cv2.imshow("Image", img)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+
+import cv2
+import cvzone
+import math
+import time
+import pyttsx3
+
+
+# Initialize text-to-speech engine
+engine = pyttsx3.init()
+
+# Set up ESP32-CAM stream
+stream_url = "http://<ESP32_IP_ADDRESS>:81/stream"  # Replace with your ESP32 IP
+cap = cv2.VideoCapture(stream_url)
+
+# Load YOLO model
+model = YOLO("../Yolo-Weights/yolov8l.pt")
+
+classNames = [...]  # Keep your original classNames list
+
+prev_frame_time = 0
+new_frame_time = 0
+detected_objects = set()
+
+while True:
+    new_frame_time = time.time()
+    success, img = cap.read()
+    if not success:
+        print("Failed to capture image from the stream.")
+        break
+
+    results = model(img, stream=True)
+    current_detected = set()
+
+    for r in results:
+        boxes = r.boxes
+        for box in boxes:
+            # Bounding Box
+            x1, y1, x2, y2 = box.xyxy[0]
+            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+            w, h = x2 - x1, y2 - y1
+            cvzone.cornerRect(img, (x1, y1, w, h))
+            # Confidence
+            conf = math.ceil((box.conf[0] * 100)) / 100
+            # Class Name
+            cls = int(box.cls[0])
+            class_name = classNames[cls]
+            current_detected.add(class_name)
+
+            cvzone.putTextRect(img, f'{class_name} {conf}', (max(0, x1), max(35, y1)), scale=1, thickness=1)
+
+    # Check for new detections and announce them
+    for obj in current_detected:
+        if obj not in detected_objects:
+            detected_objects.add(obj)
+            engine.say(f"I see a {obj}.")
+            engine.runAndWait()
+
+    # Update the frame rate
+    fps = 1 / (new_frame_time - prev_frame_time)
+    prev_frame_time = new_frame_time
+    print(fps)
+
+    cv2.imshow("Image", img)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
